@@ -1,0 +1,10 @@
+node_modules/
+*.log
+.env
+.env.*
+.DS_Store
+# the answer key lives in its own repo — never inside this one
+*answers*/
+ANSWER-KEY.md
+# Windows Git Bash safety: never commit an accidental NUL device file
+nul

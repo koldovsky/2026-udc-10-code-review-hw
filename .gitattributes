@@ -1,0 +1,3 @@
+# One line ending everywhere, so `git apply review-queue/pr-N/change.diff`
+# works the same on Windows, macOS and Linux.
+* text=auto eol=lf

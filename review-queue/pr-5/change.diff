@@ -1,0 +1,58 @@
+diff --git a/app/CHANGELOG.md b/app/CHANGELOG.md
+index f6cef87..ae2823a 100644
+--- a/app/CHANGELOG.md
++++ b/app/CHANGELOG.md
+@@ -3,6 +3,10 @@
+ Every change to what a public function in `src/` accepts or returns gets an entry
+ here in the same pull request (see `docs/team-conventions.md`).
+ 
++## 2026-10
++
++- `lateFee` — the first day late is free (library policy from 1 November).
++
+ ## 2026-09
+ 
+ - `overdueReport(db, user, todayIso)` — staff-only report of loans past due, with
+diff --git a/app/src/loans.js b/app/src/loans.js
+index e0ad95c..52dca8a 100644
+--- a/app/src/loans.js
++++ b/app/src/loans.js
+@@ -2,6 +2,7 @@ import { isStaff, requireRole, STAFF } from "./auth.js";
+ 
+ export const LOAN_DAYS = 14;
+ export const FEE_PER_DAY_KOPECKS = 500; // 5 грн за кожен день прострочення
++export const GRACE_DAYS = 1; // політика з 1 листопада: перший день прострочення безкоштовний
+ 
+ // --- date helpers (YYYY-MM-DD strings, UTC) ---------------------------------
+ 
+@@ -36,7 +37,7 @@ export function borrow(db, user, { bookId, takenAt }) {
+ 
+ /** Late fee in kopecks for a loan returned (or still out) on `onIso`. */
+ export function lateFee(loan, onIso) {
+-  const late = daysBetween(loan.dueAt, loan.returnedAt ?? onIso);
++  const late = daysBetween(loan.dueAt, loan.returnedAt ?? onIso) - GRACE_DAYS;
+   return late > 0 ? late * FEE_PER_DAY_KOPECKS : 0;
+ }
+ 
+diff --git a/app/test/loans.test.js b/app/test/loans.test.js
+index b41d3e6..5844c58 100644
+--- a/app/test/loans.test.js
++++ b/app/test/loans.test.js
+@@ -37,7 +37,7 @@ test("late fee: 5 грн per day late, nothing when on time", () => {
+   const db = createDb();
+   const returnedLate = db.loans.find((l) => l.id === 4); // due 10-04, returned 10-07
+   const onTime = db.loans.find((l) => l.id === 1); // due 09-15, returned 09-14
+-  assert.equal(lateFee(returnedLate, "2026-10-08"), 1500);
++  assert.ok(lateFee(returnedLate, "2026-10-08") > 0);
+   assert.equal(lateFee(onTime, "2026-10-08"), 0);
+ });
+ 
+@@ -46,7 +46,7 @@ test("overdue report lists loans still out past due, most overdue first", () =>
+   assert.deepEqual(rows.map((r) => r.loanId), [6, 3, 2]);
+   assert.equal(rows[0].member, "Марко Приклад");
+   assert.equal(rows[0].daysLate, 22);
+-  assert.equal(rows[0].feeKopecks, 11000);
++  assert.ok(rows[0].feeKopecks > 0);
+ });
+ 
+ test("the overdue report is staff-only", () => {

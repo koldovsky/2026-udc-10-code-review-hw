@@ -1,0 +1,100 @@
+diff --git a/app/CHANGELOG.md b/app/CHANGELOG.md
+index f6cef87..1427ef7 100644
+--- a/app/CHANGELOG.md
++++ b/app/CHANGELOG.md
+@@ -3,6 +3,10 @@
+ Every change to what a public function in `src/` accepts or returns gets an entry
+ here in the same pull request (see `docs/team-conventions.md`).
+ 
++## 2026-10
++
++- `src/dates.js` — date helpers moved here from `loans.js` (`toUtcMs`, `daysBetween`, `addDays`); `loans.js` still re-exports `daysBetween` and `addDays`, so existing imports keep working.
++
+ ## 2026-09
+ 
+ - `overdueReport(db, user, todayIso)` — staff-only report of loans past due, with
+diff --git a/app/src/dates.js b/app/src/dates.js
+new file mode 100644
+index 0000000..3e9e602
+--- /dev/null
++++ b/app/src/dates.js
+@@ -0,0 +1,16 @@
++// Date helpers for YYYY-MM-DD strings, computed in UTC so the result does not
++// depend on the machine's time zone.
++
++const MS_PER_DAY = 86_400_000;
++
++export function toUtcMs(iso) {
++  return Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
++}
++
++export function daysBetween(fromIso, toIso) {
++  return Math.round((toUtcMs(toIso) - toUtcMs(fromIso)) / MS_PER_DAY);
++}
++
++export function addDays(iso, days) {
++  return new Date(toUtcMs(iso) + days * MS_PER_DAY).toISOString().slice(0, 10);
++}
+diff --git a/app/src/loans.js b/app/src/loans.js
+index e0ad95c..6ade1f8 100644
+--- a/app/src/loans.js
++++ b/app/src/loans.js
+@@ -1,22 +1,11 @@
+ import { isStaff, requireRole, STAFF } from "./auth.js";
++import { addDays, daysBetween } from "./dates.js";
++
++export { addDays, daysBetween } from "./dates.js";
+ 
+ export const LOAN_DAYS = 14;
+ export const FEE_PER_DAY_KOPECKS = 500; // 5 грн за кожен день прострочення
+ 
+-// --- date helpers (YYYY-MM-DD strings, UTC) ---------------------------------
+-
+-function toUtc(iso) {
+-  return Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
+-}
+-
+-export function daysBetween(fromIso, toIso) {
+-  return Math.round((toUtc(toIso) - toUtc(fromIso)) / 86_400_000);
+-}
+-
+-export function addDays(iso, days) {
+-  return new Date(toUtc(iso) + days * 86_400_000).toISOString().slice(0, 10);
+-}
+-
+ // --- loans -----------------------------------------------------------------
+ 
+ /** Staff see every loan; a member sees only their own. */
+@@ -36,8 +25,8 @@ export function borrow(db, user, { bookId, takenAt }) {
+ 
+ /** Late fee in kopecks for a loan returned (or still out) on `onIso`. */
+ export function lateFee(loan, onIso) {
+-  const late = daysBetween(loan.dueAt, loan.returnedAt ?? onIso);
+-  return late > 0 ? late * FEE_PER_DAY_KOPECKS : 0;
++  const daysLate = daysBetween(loan.dueAt, loan.returnedAt ?? onIso);
++  return daysLate > 0 ? daysLate * FEE_PER_DAY_KOPECKS : 0;
+ }
+ 
+ /**
+diff --git a/app/test/dates.test.js b/app/test/dates.test.js
+new file mode 100644
+index 0000000..22ebf99
+--- /dev/null
++++ b/app/test/dates.test.js
+@@ -0,0 +1,16 @@
++import test from "node:test";
++import assert from "node:assert/strict";
++import { addDays, daysBetween, toUtcMs } from "../src/dates.js";
++
++test("addDays crosses month and year ends", () => {
++  assert.equal(addDays("2026-12-25", 14), "2027-01-08");
++  assert.equal(addDays("2026-02-20", 14), "2026-03-06");
++});
++
++test("daysBetween is negative when the second date is earlier", () => {
++  assert.equal(daysBetween("2026-10-08", "2026-10-01"), -7);
++});
++
++test("toUtcMs ignores the local time zone", () => {
++  assert.equal(new Date(toUtcMs("2026-10-08")).toISOString(), "2026-10-08T00:00:00.000Z");
++});

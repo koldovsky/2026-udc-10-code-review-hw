@@ -1,0 +1,62 @@
+diff --git a/app/CHANGELOG.md b/app/CHANGELOG.md
+index f6cef87..bdc0699 100644
+--- a/app/CHANGELOG.md
++++ b/app/CHANGELOG.md
+@@ -3,6 +3,10 @@
+ Every change to what a public function in `src/` accepts or returns gets an entry
+ here in the same pull request (see `docs/team-conventions.md`).
+ 
++## 2026-10
++
++- `exportMembersCsv(db, user)` — CSV of members for the monthly reconciliation.
++
+ ## 2026-09
+ 
+ - `overdueReport(db, user, todayIso)` — staff-only report of loans past due, with
+diff --git a/app/src/members.js b/app/src/members.js
+index 2881d91..2bc2aec 100644
+--- a/app/src/members.js
++++ b/app/src/members.js
+@@ -7,6 +7,14 @@ export function listMembers(db, user) {
+   return db.members.map(({ id, name, role }) => ({ id, name, role }));
+ }
+ 
++/** Monthly reconciliation export: one row per member. */
++export function exportMembersCsv(db, user) {
++  if (!user) throw new AccessDenied();
++  const header = "id,name,email,phone,role";
++  const lines = db.members.map((m) => [m.id, m.name, m.email, m.phone, m.role].join(","));
++  return [header, ...lines].join("\n");
++}
++
+ /** A member may read their own card; staff may read anyone's. */
+ export function memberCard(db, user, id) {
+   if (!user) throw new AccessDenied();
+diff --git a/app/test/members.test.js b/app/test/members.test.js
+index 8aef869..fd4ca8a 100644
+--- a/app/test/members.test.js
++++ b/app/test/members.test.js
+@@ -1,7 +1,7 @@
+ import test from "node:test";
+ import assert from "node:assert/strict";
+ import { createDb } from "../src/db.js";
+-import { listMembers, memberCard } from "../src/members.js";
++import { listMembers, memberCard, exportMembersCsv } from "../src/members.js";
+ import { AccessDenied } from "../src/auth.js";
+ 
+ const olya = { id: 1, role: "member" };
+@@ -32,3 +32,14 @@ test("reading a card is recorded in the access log", () => {
+ test("staff read any card", () => {
+   assert.equal(memberCard(createDb(), iryna, 2).name, "Тарас Приклад");
+ });
++
++test("CSV export has a header and one row per member", () => {
++  const csv = exportMembersCsv(createDb(), iryna);
++  const lines = csv.split("\n");
++  assert.equal(lines[0], "id,name,email,phone,role");
++  assert.equal(lines.length, 6);
++});
++
++test("CSV export refuses an anonymous caller", () => {
++  assert.throws(() => exportMembersCsv(createDb(), null), AccessDenied);
++});

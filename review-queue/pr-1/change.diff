@@ -1,0 +1,45 @@
+diff --git a/app/src/loans.js b/app/src/loans.js
+index e0ad95c..f41e9d1 100644
+--- a/app/src/loans.js
++++ b/app/src/loans.js
+@@ -26,6 +26,13 @@ export function listLoans(db, user) {
+   return rows.map((l) => ({ ...l }));
+ }
+ 
++/** Paged variant for the staff UI: { items, page, pageSize, total }. */
++export function listLoansPage(db, user, { page = 1, pageSize = 20 } = {}) {
++  const all = listLoans(db, user);
++  const start = page * pageSize;
++  return { items: all.slice(start, start + pageSize), page, pageSize, total: all.length };
++}
++
+ export function borrow(db, user, { bookId, takenAt }) {
+   if (!user) throw new Error("user required");
+   if (!db.findBook(bookId)) throw new Error("no such book");
+diff --git a/app/test/loans.test.js b/app/test/loans.test.js
+index b41d3e6..13fe599 100644
+--- a/app/test/loans.test.js
++++ b/app/test/loans.test.js
+@@ -1,7 +1,7 @@
+ import test from "node:test";
+ import assert from "node:assert/strict";
+ import { createDb } from "../src/db.js";
+-import { listLoans, borrow, lateFee, overdueReport, addDays, daysBetween, LOAN_DAYS } from "../src/loans.js";
++import { listLoans, listLoansPage, borrow, lateFee, overdueReport, addDays, daysBetween, LOAN_DAYS } from "../src/loans.js";
+ import { AccessDenied } from "../src/auth.js";
+ 
+ const olya = { id: 1, role: "member" };
+@@ -12,6 +12,13 @@ test("a member sees only their own loans", () => {
+   assert.deepEqual(rows.map((l) => l.id), [1, 2, 7]);
+ });
+ 
++test("paged list reports the total and the page it returned", () => {
++  const res = listLoansPage(createDb(), iryna, { page: 1, pageSize: 20 });
++  assert.equal(res.total, 7);
++  assert.equal(res.page, 1);
++  assert.equal(res.pageSize, 20);
++});
++
+ test("staff see every loan", () => {
+   assert.equal(listLoans(createDb(), iryna).length, 7);
+ });

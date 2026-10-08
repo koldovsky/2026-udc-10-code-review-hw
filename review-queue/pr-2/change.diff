@@ -1,0 +1,35 @@
+diff --git a/app/src/loans.js b/app/src/loans.js
+index e0ad95c..fe1873b 100644
+--- a/app/src/loans.js
++++ b/app/src/loans.js
+@@ -46,15 +46,16 @@ export function lateFee(loan, onIso) {
+  */
+ export function overdueReport(db, user, todayIso) {
+   requireRole(user, STAFF);
+-  const names = new Map(db.members.map((m) => [m.id, m.name]));
+   return db.loans
+     .filter((l) => l.returnedAt === null && l.dueAt < todayIso)
+     .map((l) => ({
+       loanId: l.id,
+-      member: names.get(l.memberId) ?? "—",
++      member: db.findMember(l.memberId)?.name ?? "—",
++      email: db.findMember(l.memberId)?.email ?? null,
+       book: db.findBook(l.bookId)?.title ?? "—",
+       daysLate: daysBetween(l.dueAt, todayIso),
+       feeKopecks: lateFee(l, todayIso),
++      feeText: (lateFee(l, todayIso) / 100).toFixed(2).replace(".", ",") + " грн",
+     }))
+     .sort((a, b) => b.daysLate - a.daysLate);
+ }
+diff --git a/app/test/loans.test.js b/app/test/loans.test.js
+index b41d3e6..0a66508 100644
+--- a/app/test/loans.test.js
++++ b/app/test/loans.test.js
+@@ -45,6 +45,7 @@ test("overdue report lists loans still out past due, most overdue first", () =>
+   const rows = overdueReport(createDb(), iryna, "2026-10-08");
+   assert.deepEqual(rows.map((r) => r.loanId), [6, 3, 2]);
+   assert.equal(rows[0].member, "Марко Приклад");
++  assert.equal(rows[0].email, "marko@example.invalid");
+   assert.equal(rows[0].daysLate, 22);
+   assert.equal(rows[0].feeKopecks, 11000);
+ });

@@ -1,0 +1,13 @@
+{
+  "name": "udc-ws10-library",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Community library loans service — the codebase the homework's pull requests change",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
