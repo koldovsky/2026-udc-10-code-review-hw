@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(review/gate.mjs)",
+      "Edit(review/gate.test.mjs)",
+      "Edit(.githooks/**)",
+      "Edit(.claude/settings.json)"
+    ]
+  }
+}
