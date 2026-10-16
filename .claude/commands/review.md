@@ -50,8 +50,11 @@ git checkout -- app && git clean -fd app
 Далі — перевірки зі стандарту, яких у CI ще немає (розділ «Чого в CI ще немає»). По
 дифу:
 
-- **R4** — `toFixed(`, `грн`, `Intl.NumberFormat` у `src/`; сума в полі без суфікса `Kopecks`.
-- **R5** — `getFullYear`, `getMonth`, `getDate`, `toLocaleDateString`, `new Date()` без аргументів у `src/`.
+- **R4** — `toFixed(`, `Intl.NumberFormat`, літерал `грн` **у коді** (не в коментарі);
+  сума в полі без суфікса `Kopecks`.
+- **R5** — `getFullYear`, `getMonth`, `getDate`, `toLocaleDateString` у `src/`;
+  `new Date()` без аргументів — лише якщо результат іде в обчислення дати
+  (мітка часу одразу через `.toISOString()` дозволена).
 - **R6** — чи змінився рядок `export` у `app/src/*.js` без запису в `app/CHANGELOG.md`.
 - **R9** — чи диф видаляє або послаблює рядки з `assert` у `app/test/`.
 - **R10** — нова функція з перевіркою доступу без тесту на `AccessDenied`.
