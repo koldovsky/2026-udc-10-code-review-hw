@@ -61,8 +61,10 @@
 `fileName = "../secrets.csv"`, файл `<tmp>/secrets.csv` поза текою завантажень —
 `importMembersFromUpload` прочитав його й повернув `{ added: 1 }`, у `db.members` ліг
 запис `{"id":6,"name":"LEAKED","email":"leaked@x.invalid","phone":"+9","role":"member"}`.
-Абсолютне ім'я працює ще прямолінійніше: `path.join` відкидає `uploadDir`, якщо другий
-аргумент абсолютний, тому `fileName = "/etc/passwd"` читається напряму. Наслідок — не лише
+Небезпечний саме `../`: абсолютне ім'я ескейпу не дає — `path.join` склеює й нормалізує
+сегменти, тому `fileName = "/etc/passwd"` дає `<tmp>/uploads/etc/passwd`, усередині теки
+завантажень. Вийти за неї можна лише кількістю `..`:
+`fileName = "../../../../etc/passwd"` → `/etc/passwd`. Наслідок — не лише
 сміття в `db`: вміст будь-якого прочитаного файлу стає видимим через `listMembers` і
 `memberCard`, тобто файл з диска сервера виноситься в API.
 
