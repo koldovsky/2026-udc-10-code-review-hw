@@ -134,4 +134,14 @@ including the seeded defects — a reminder that green tests do not mean correct
 
 ## Conclusion
 
-_To be finished with Task D._
+**Where I can trust the reviewer:** it found all 15 seeded defects in both runs, including a
+path traversal and a sensitive-data audit gap, and it handled the injected comment in PR-6
+by naming it and still reviewing the file. It was calm on the one clean PR (PR-4).
+
+**Where not:** run 1 produced three confident blocking comments that were not defects (rules
+applied to code they did not fit), and it never ran the tests. Both were fixed with general
+rules, but the evidence is one run on six PRs, so false alarms on new code are still likely.
+It also treats green tests as reassurance only when told otherwise: every seeded defect
+passed the suite. So its output is advisory input for a human, the deterministic rules
+(tests, CHANGELOG, money/date patterns, dependencies) belong in CI as described in
+`docs/pipeline.md`, and a human approves the merge.
