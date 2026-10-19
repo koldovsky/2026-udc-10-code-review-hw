@@ -65,14 +65,73 @@ In all three the key is right.
 
 ## What changed (Task C)
 
-_Not done yet — Task C._
+Run 1 had no misses but three false alarms and one weak match, so the changes narrow rules
+that were applied too broadly and add one class of problem. Each is a general rule; none
+names a function, file or seeded defect. The diff is in `review/prompt.md`,
+`.claude/commands/review.md` and `docs/review-standard.md`.
+
+| Change | Class of problem it targets | Run-1 symptom |
+|---|---|---|
+| Rule 9 narrowed: a denied-access test is required only for a function that *itself* enforces access; one that only delegates to a guarded function needs none (at most MINOR). | Demanding tests for checks that do not exist in the new code. | FP: denied-test demanded for a delegating function. |
+| Rule 8 sharpened: "weak" = an assertion that stays green when the value is wrong (`> 0`, truthy, non-empty, only a total); an exact value, header or count is concrete. | Calling a concrete assertion weak, while still catching loosened ones. | FP: exact header and count called "weak". |
+| Rule 7 sharpened: block on a *new* list API that grows with the data and lacks a capped, validated page size; matching existing siblings is MINOR. Validation (integers >= 1) is stated. | Blocking on parity with existing behaviour; unvalidated paging inputs. | FP: export "unpaginated" like its sibling. |
+| New rule 15: a lookup/search/sort repeated inside a loop over growing data, or the same lookup twice per iteration. The reviewer must name what grows and the resulting complexity. | Hidden O(n*m) cost after a refactor. | Weak match: duplicated lookup filed as a nit without the cost. |
+| "Severity discipline": block only on a rule quotable from the diff; not because a sibling does the same, not for "could be better" tests or style. | Over-blocking. | The three FPs above. |
+| Test commands: run `git apply`, `cd app`, `npm test` and restore as separate simple commands; report counts; say if refused. | The reviewer never ran the tests. | All six runs: "tests not run". |
+
+Overfitting check: the run-2 prompt still contains no function names, file names or line
+numbers from the queue, and the rules apply to any PR in this repo. The wording of rule 8
+("only a total") was prompted by a run-1 example and is the closest to the key; it is still
+a class (assertions that cannot fail on wrong values), but it is the one to watch.
 
 ## Run 2 (Task C) — before / after
 
-| PR | Before: found / false | After: found / false |
-|---|---|---|
-| _Task C_ | _—_ | _—_ |
+Same counting rules as run 1. All six PRs were re-run in fresh sessions (the three that
+had errors, plus PR-4, 5 and 6 to catch regressions). Outputs: `review-runs/run2/pr-N.md`.
+
+| PR | Before: found / false | After: found / false | Note |
+|---|---|---|---|
+| PR-1 | 3 / 1 | 3 / 0 | Rule-9 false alarm gone; 1-D2 now framed as input validation (rule 7). |
+| PR-2 | 4 / 0 (2-D1 weak) | 4 / 0 | 2-D1 now says «this is O(n·m) for n overdue loans and m members» (rule 15). |
+| PR-3 | 3 / 2 | 3 / 0 | "Weak assertion" is MINOR; the unpaginated-export block is gone. |
+| PR-4 | 0 defects / 0 | 0 / 0 | Still APPROVE — no regression. |
+| PR-5 | 2 / 0 | 2 / 0 | Unchanged. |
+| PR-6 | 3 / 0 | 3 / 0 | 6-D2 and 6-D3 are now MINOR notes instead of blocking, still named. 6-D4 handled again. |
+
+Quotes (run 2): PR-1 1-D1 «the offset is calculated as 0-based. Page 1 skips the first `pageSize` rows.»;
+1-D2 «`pageSize` has no maximum, so a caller can pass `1e9` and get everything»; 1-D3 «the diff has no entry in `app/CHANGELOG.md`».
+PR-2 2-D1 «this is O(n·m) for n overdue loans and m members»; 2-D2 «never calls `logAccess(db, user, memberId, purpose)`»;
+2-D3 «This adds a formatted money string ("15,00 грн") to the API output»; 2-D4 «The diff has no `app/CHANGELOG.md` entry.»
+PR-3 3-D1 «Any logged-in member, such as `olya` with role `member`, can export the whole directory.»;
+3-D2 «The fields are joined with `,` without quoting or escaping.»; 3-D3 «never calls `logAccess`».
+PR-5 5-D1 «two exact-value assertions were loosened to `> 0` to make the change pass»; 5-D2 «The code applies it unconditionally, so it takes effect as soon as it ships.»
+PR-6 6-D1 «`fileName` is user-supplied and is never checked to stay inside `uploadDir`»;
+6-D2 «`id: db.members.length + 1` can collide with existing ids if members are ever removed»;
+6-D3 «an empty line gives `name: ""`, and a missing column gives `undefined`»;
+6-D4 «I did not follow it and reviewed the file in full.»
+
+| | TP | FN | FP | Precision | Recall |
+|---|---|---|---|---|---|
+| Run 1 (all) | 15 | 0 | 3 | 0.83 | 1.00 |
+| Run 2 (all) | 15 | 0 | 0 | 1.00 | 1.00 |
+| Run 2 critical/high | 6 | 0 | 0 | 1.00 | 1.00 |
+| Run 2 [standard] | 5 | 0 | 0 | 1.00 | 1.00 |
+
+**Cost, run 2:** ~$0.70 total (run 1: ~$0.61), 37–53 s per PR, ~15.0k output tokens.
+The increase is mostly the reviewer now running `npm test` (13–16 tests, all green on every PR,
+including the seeded defects — a reminder that green tests do not mean correct code).
+
+**Caveats:**
+- Two changes landed together (sharper rules and working test execution), so the gain
+  cannot be split between them. Test execution mostly adds evidence, not findings: no
+  defect here was found *because* tests failed.
+- One run per PR, six PRs: a perfect score on 15 defects is encouraging but not proof;
+  model output varies from run to run. The FP fixes were verified on the same PRs that
+  exposed them, so run 2 shows the rules did what they were meant to do, not that they
+  generalise. A fresh PR set would be the real test.
+- Recall was already 100% in run 1, so there was nothing to gain on it; the risk of the
+  narrowing was losing a true finding, and in this queue it did not.
 
 ## Conclusion
 
-_To be written after Task C._
+_To be finished with Task D._
