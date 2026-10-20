@@ -1,0 +1,49 @@
+name: PR checks and AI review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deterministic-checks:
+    name: Deterministic checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run tests
+        working-directory: app
+        run: npm test
+
+  ai-review:
+    name: AI review (advisory integration point)
+    needs: deterministic-checks
+    if: >-
+      ${{
+        needs.deterministic-checks.result == 'success' &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Report that AI review is not configured
+        run: |
+          echo "AI review skipped: no AI provider integration is configured in this repository."
+          echo "Use review/prompt.md with an approved provider after a separate security review."
+          echo "The result is advisory and cannot replace human approval."
+
