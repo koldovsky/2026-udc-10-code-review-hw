@@ -1,0 +1,146 @@
+# AI-assisted review for pull requests that touch app/.
+# Kept in pipeline/ on purpose: copy to .github/workflows/ in your own fork to run it.
+#
+#   checks     required check: tests + deterministic diff checks. No secrets.
+#   ai-review  advisory: Claude Code reviews with read-only tools. Has the API key, no write token.
+#   comment    posts the review as a PR comment. Has the write token, no API key, runs no PR code.
+#
+# Merging still needs a human approval (branch protection), whatever the bot says.
+
+name: ai-review
+
+on:
+  pull_request: # never pull_request_target: fork PRs get no secrets and a read-only token
+    types: [opened, synchronize, reopened]
+    paths: ["app/**"]
+
+permissions: {} # every job opts into exactly what it needs
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks (tests + diff rules)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2 # the PR merge commit and its base parent
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Tests
+        working-directory: app
+        run: npm test
+
+      - name: Diff of app/ against the base
+        run: git diff --no-color HEAD^1 HEAD -- app > pr.diff
+
+      # The checker script comes from the base commit, so the PR cannot edit its own gate.
+      - name: Deterministic review rules (docs/review-standard.md)
+        run: bash -c "$(git show HEAD^1:pipeline/diff-checks.sh)" < pr.diff
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pr-diff
+          path: pr.diff
+          retention-days: 3
+
+  ai-review:
+    name: ai-review (advisory)
+    needs: checks
+    # Secrets exist only for PRs from this repo; fork PRs skip the AI step instead of failing.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true # advisory: a failed or slow review never blocks the PR
+    permissions:
+      contents: read
+    steps:
+      # Base commit only: the reviewer's prompt, rules and app/ come from the trusted branch.
+      # The PR reaches the reviewer only as data (diff + description), never as config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pr-diff
+          path: review-queue/pr-ci
+
+      - name: PR description as data
+        env: # passed through env, never interpolated into the script
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          mv review-queue/pr-ci/pr.diff review-queue/pr-ci/change.diff
+          printf '# %s\n\n%s\n' "$PR_TITLE" "$PR_BODY" > review-queue/pr-ci/PR.md
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Install Claude Code (pinned)
+        run: npm install --global --ignore-scripts @anthropic-ai/claude-code@2.1.304
+
+      # Read-only tools only: no Bash, so the reviewer cannot run PR code or reach the
+      # network itself while the API key is in its environment. Tests already ran in `checks`.
+      - name: Review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude -p "/review ci" \
+            --model opus \
+            --max-turns 30 \
+            --output-format json \
+            --no-session-persistence \
+            --setting-sources project \
+            --strict-mcp-config \
+            --permission-mode dontAsk \
+            --allowedTools "Read" "Grep" "Glob" \
+            --disallowedTools "Bash" "Write" "Edit" "NotebookEdit" "WebFetch" "WebSearch" "Agent" \
+            --append-system-prompt "CI mode: Bash is unavailable, so skip step 4 (apply/test/restore); the required check 'checks' already ran npm test with this PR and it passed. Review from the diff text and derive line numbers from the hunk headers. Write 'Тести з PR: зелені (check checks)'." \
+            > result.json
+          jq -r '.result' result.json | head -c 60000 > review.md
+          jq -r '"duration_s=\(.duration_ms/1000|floor) turns=\(.num_turns) cost_usd=\(.total_cost_usd)"' result.json
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ai-review
+          path: review.md
+          retention-days: 7
+
+  comment:
+    name: post advisory comment
+    needs: ai-review
+    if: needs.ai-review.result == 'success' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write # the only write permission in the workflow; no checkout, no secrets
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ai-review
+
+      - name: Comment on the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo '> 🤖 **AI review — дорадчий.** Не блокує злиття; рішення за людиною-рев'"'"'юером.'
+            echo
+            cat review.md
+          } > body.md
+          gh pr comment "$PR" --body-file body.md --edit-last --create-if-none
