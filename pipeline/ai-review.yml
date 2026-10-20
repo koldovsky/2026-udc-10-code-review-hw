@@ -1,0 +1,61 @@
+
+
+name: ai-review
+
+on:
+  pull_request:          # not pull_request_target: no secrets or write access for untrusted code
+    paths: ["app/**"]
+
+permissions: {}          # nothing by default; each job asks for what it needs
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+        working-directory: app
+
+  ai-review:
+    needs: tests
+    # fork PRs get no secrets, so the job is skipped
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    continue-on-error: true    # the review is advisory and never blocks
+    permissions:
+      contents: read
+      pull-requests: write     # only to post the comment
+    steps:
+      # Base branch, not the PR: the PR cannot swap the prompt or the standard
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: AI review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}   # via env, not inline in run:, to prevent shell injection
+        run: |
+          mkdir -p pr-input
+          echo "$PR_BODY" > pr-input/PR.md
+          gh pr diff "$PR" > pr-input/change.diff
+
+          npm install -g @anthropic-ai/claude-code
+          claude -p "$(cat review/prompt.md)
+          The PR is in pr-input/ (PR.md, change.diff). Do not write any files; print the review as your answer." \
+            --allowedTools "Read,Grep,Glob" \
+            --disallowedTools "Bash,Edit,Write,WebFetch,WebSearch" \
+            > review.md
+
+          gh pr comment "$PR" --body-file review.md
