@@ -1,0 +1,104 @@
+name: AI review (advisory)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
+jobs:
+  deterministic-checks:
+    name: Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run tests
+        working-directory: app
+        run: npm test
+
+  ai-review:
+    name: Advisory AI review
+    needs: deterministic-checks
+    # Secrets and comment permission are available only for same-repository PRs.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      models: read
+      pull-requests: read
+    steps:
+      - name: Check out trusted review configuration
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          persist-credentials: false
+      - name: Verify trusted review configuration is bootstrapped
+        run: |
+          test -f trusted/review/prompt.prompt.yml || {
+            echo "::error::Add review/prompt.prompt.yml to the base branch before enabling this workflow."
+            exit 1
+          }
+          test -f trusted/docs/review-standard.md || {
+            echo "::error::Add docs/review-standard.md to the base branch before enabling this workflow."
+            exit 1
+          }
+      - name: Fetch pull request diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: gh pr diff "$PR_NUMBER" --repo "$REPOSITORY" > review.diff
+      - name: Prepare YAML-safe prompt inputs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def indent_prompt_input(source: str, destination: str) -> None:
+              lines = Path(source).read_text(encoding="utf-8").splitlines()
+              if not lines:
+                  lines = [""]
+              lines[1:] = [f"      {line}" for line in lines[1:]]
+              Path(destination).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          indent_prompt_input("review.diff", "review.diff.prompt")
+          indent_prompt_input("trusted/docs/review-standard.md", "review.standard.prompt")
+          PY
+      - name: Generate review from the diff
+        id: review
+        uses: actions/ai-inference@v1
+        with:
+          prompt-file: trusted/review/prompt.prompt.yml
+          file_input: |
+            diff: ${{ github.workspace }}/review.diff.prompt
+            standard: ${{ github.workspace }}/review.standard.prompt
+          model: gpt-4.1
+          max-tokens: '4096'
+          token: ${{ github.token }}
+      - name: Post advisory comment
+        uses: actions/github-script@v7
+        env:
+          AI_REVIEW: ${{ steps.review.outputs.response }}
+        with:
+          script: |
+            const body = [
+              '## AI review (advisory)',
+              '',
+              process.env.AI_REVIEW || 'The reviewer returned no response.',
+              '',
+              '_This comment is advisory. A human must review the findings and approve any merge._'
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
