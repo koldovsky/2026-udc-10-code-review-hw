@@ -71,32 +71,50 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Build the review input (diff + description as data)
+      - name: Build the review workspace (base code + PR as data)
+        id: input
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          WORK: ${{ runner.temp }}/review
         run: |
           set -euo pipefail
-          mkdir -p review-input
-          git diff "$BASE_SHA" HEAD -- app > review-input/change.diff
-          # The reviewer's own prompt comes from the base branch, so a PR cannot rewrite it.
-          git show "$BASE_SHA":review/prompt.md > review-input/prompt.md
+          # The reviewer runs in a worktree of the BASE commit, never in the PR checkout:
+          # - app/ there is the real "before" code the prompt compares against;
+          # - the PR cannot ship its own .claude/ settings, hooks or prompt into the run.
+          git worktree add --detach "$WORK" "$BASE_SHA"
+          mkdir -p "$WORK/review-input"
+          git diff "$BASE_SHA" HEAD -- app > "$WORK/review-input/change.diff"
           # The description goes to a file, never into a shell command or the prompt text itself.
-          printf '%s' "$PR_BODY" > review-input/PR.md
-      - name: Run the reviewer (read-only tools, no shell)
+          printf '%s' "$PR_BODY" > "$WORK/review-input/PR.md"
+          # Nothing in app/ changed (e.g. a PR touching only review/** or the conventions):
+          # skip the AI review instead of reviewing an empty diff.
+          if [ -s "$WORK/review-input/change.diff" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::No changes in app/ — AI review skipped; human review only."
+          fi
+      - name: Run the reviewer (read-only tools, no shell, no hooks)
+        if: steps.input.outputs.skip != 'true'
+        working-directory: ${{ runner.temp }}/review
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           set -euo pipefail
+          # Prompt from the base commit (this worktree), so a PR cannot rewrite it.
+          # disableAllHooks: no hook from any settings file runs next to the API key.
           npx --yes @anthropic-ai/claude-code@2.1.316 -p \
-            "$(cat review-input/prompt.md)
+            "$(cat review/prompt.md)
 
-          PR для рев'ю: review-input (файли PR.md і change.diff; базовий код — app/)." \
+          PR для рев'ю: review-input (файли PR.md і change.diff; базовий код до зміни — app/ у цій теці)." \
             --model sonnet \
+            --settings '{"disableAllHooks": true}' \
             --allowedTools "Read,Glob,Grep" \
             --max-turns 30 \
-            > review-output.md
+            > "$GITHUB_WORKSPACE/review-output.md"
       - name: Post the review as an advisory comment
+        if: steps.input.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
