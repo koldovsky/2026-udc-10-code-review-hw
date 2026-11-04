@@ -1,0 +1,109 @@
+# AI-review flow for pull requests (Task D).
+# Lives in pipeline/, not .github/workflows/, so it never runs in the course repo.
+# In your own fork: copy to .github/workflows/ai-review.yml.
+#
+# Order: deterministic checks (required) → AI review (advisory comment only).
+# A human approves the merge; branch protection requires the `tests` job, not the AI.
+name: ai-review
+
+on:
+  # pull_request, NOT pull_request_target: the workflow runs with the PR's code but
+  # with a read-only token and no repository secrets for PRs from forks.
+  pull_request:
+    branches: [main]
+    paths: ["app/**", "review/**", "docs/team-conventions.md"]
+
+# Nothing by default; each job asks only for what it needs.
+permissions: {}
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: tests (required check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npm test (R12)
+        working-directory: app
+        run: npm test
+      - name: Deterministic convention checks (R4, R6, R13)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          changed="$(git diff --name-only "$BASE_SHA" HEAD)"
+          # R6: an exported signature changed in app/src → CHANGELOG in the same PR
+          if git diff -U0 "$BASE_SHA" HEAD -- app/src | grep -qE '^[+-]export '; then
+            echo "$changed" | grep -qx 'app/CHANGELOG.md' \
+              || { echo "::error::R6: exports in app/src changed, app/CHANGELOG.md did not"; exit 1; }
+          fi
+          # R4: money formatting stays out of src/
+          if git diff -U0 "$BASE_SHA" HEAD -- app/src | grep -E '^\+' | grep -nE 'грн|toFixed\(|toLocaleString\('; then
+            echo "::error::R4: money formatting added to app/src"; exit 1
+          fi
+          # R13: no npm dependencies in app/
+          node -e 'const p=require("./app/package.json"); if (Object.keys({...p.dependencies,...p.devDependencies}).length) { console.error("::error::R13: app/ must not have npm dependencies"); process.exit(1) }'
+
+  ai-review:
+    name: AI review (advisory)
+    needs: tests
+    # Secrets are not available to fork PRs anyway; skip explicitly instead of failing.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write # only to post one comment
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Build the review input (diff + description as data)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          mkdir -p review-input
+          git diff "$BASE_SHA" HEAD -- app > review-input/change.diff
+          # The reviewer's own prompt comes from the base branch, so a PR cannot rewrite it.
+          git show "$BASE_SHA":review/prompt.md > review-input/prompt.md
+          # The description goes to a file, never into a shell command or the prompt text itself.
+          printf '%s' "$PR_BODY" > review-input/PR.md
+      - name: Run the reviewer (read-only tools, no shell)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          npx --yes @anthropic-ai/claude-code@2.1.316 -p \
+            "$(cat review-input/prompt.md)
+
+          PR для рев'ю: review-input (файли PR.md і change.diff; базовий код — app/)." \
+            --model sonnet \
+            --allowedTools "Read,Glob,Grep" \
+            --max-turns 30 \
+            > review-output.md
+      - name: Post the review as an advisory comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "### 🤖 AI-рев'ю (дорадче, не блокує злиття — рішення за людиною)"
+            echo
+            cat review-output.md
+          } > comment.md
+          gh pr comment "$PR_NUMBER" --body-file comment.md
