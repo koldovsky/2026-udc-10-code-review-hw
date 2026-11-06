@@ -1,0 +1,11 @@
+{
+  "pr": 1,
+  "started_at_utc": "2026-11-06T08:32:11Z",
+  "elapsed_seconds": 27,
+  "timing_basis": "Observed UTC clock interval from initial configuration read completion through final static analysis; output writing excluded.",
+  "model": null,
+  "model_availability": "Exact model identifier not exposed to reviewer.",
+  "token_usage": null,
+  "token_usage_availability": "Not exposed to reviewer.",
+  "tests_run": false
+}

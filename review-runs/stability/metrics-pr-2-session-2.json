@@ -1,0 +1,22 @@
+{
+  "pr": 2,
+  "session": 2,
+  "prompt_version": 2,
+  "measurement_start_utc": "2026-11-06T08:39:52.421Z",
+  "measurement_end_utc": "2026-11-06T08:40:33.978Z",
+  "elapsed_seconds": 41.557,
+  "timing_scope": "Measured from immediately before base application inspection through review-file creation; excludes initial trusted-prompt and PR-material reads.",
+  "model": {
+    "available": false,
+    "value": null,
+    "reason": "Exact executing model identifier is not exposed to this reviewer."
+  },
+  "token_usage": {
+    "available": false,
+    "input_tokens": null,
+    "output_tokens": null,
+    "reason": "Actual per-session token usage is not exposed to this reviewer."
+  },
+  "tests_run": false,
+  "review_mode": "static"
+}

@@ -1,0 +1,14 @@
+{
+  "pr": 2,
+  "review_config": "review/prompt-v1.md",
+  "timing_start_utc": "2026-11-06 08:32:18 UTC",
+  "elapsed_seconds": 36,
+  "timing_end_utc": "2026-11-06 08:32:54 UTC",
+  "timing_note": "Elapsed seconds recorded separately after writing the review; start timestamp was captured immediately after the initial input read.",
+  "model": null,
+  "model_availability": "Exact executing model identifier is not exposed to this isolated agent.",
+  "token_usage": null,
+  "token_usage_availability": "Actual input/output token usage is not exposed; no usage estimate recorded.",
+  "tests_run": false,
+  "diff_applied": false
+}

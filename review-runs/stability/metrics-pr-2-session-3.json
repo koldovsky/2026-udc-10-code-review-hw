@@ -1,0 +1,17 @@
+{
+  "pr": 2,
+  "session": 3,
+  "reviewer_configuration": "review/prompt.md version 2",
+  "measured_started_at_utc": "2026-11-06T08:41:06Z",
+  "measured_finished_at_utc": "2026-11-06T08:41:57Z",
+  "measured_elapsed_seconds": 51,
+  "timing_scope": "From first explicit clock observation after reading the trusted prompt through saving the review; prompt-reading and metrics-writing time excluded.",
+  "model": null,
+  "model_availability": "Actual runtime model identifier was not exposed to this reviewer.",
+  "token_usage": null,
+  "token_usage_availability": "No actual model token-usage counter was exposed to this reviewer.",
+  "tests_run": false,
+  "review_mode": "static",
+  "diff_applied": false,
+  "application_modified": false
+}

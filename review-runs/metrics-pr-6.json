@@ -1,0 +1,12 @@
+{
+  "pr": 6,
+  "started_at_utc": "2026-11-06T08:34:32Z",
+  "finished_at_utc": "2026-11-06T08:35:15Z",
+  "elapsed_seconds": 43,
+  "elapsed_measurement": "Wall-clock interval from first recorded UTC timestamp after input read to completed static analysis.",
+  "model": "GPT-6 family (exact model identifier unavailable)",
+  "token_usage": null,
+  "token_usage_availability": "Actual per-task token usage is not exposed by the available tools.",
+  "tests_run": false,
+  "diff_applied": false
+}

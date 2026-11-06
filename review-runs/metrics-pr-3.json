@@ -1,0 +1,12 @@
+{
+  "pr": 3,
+  "started_at_utc": "2026-11-06T08:32:24Z",
+  "completed_at_utc": "2026-11-06T08:32:57Z",
+  "elapsed_seconds": 33,
+  "model": null,
+  "model_availability": "Exact executing model identifier was not exposed to this review session.",
+  "token_usage": null,
+  "token_usage_availability": "Token usage metrics were not exposed to this review session.",
+  "tests_run": false,
+  "review_mode": "static; diff not applied"
+}

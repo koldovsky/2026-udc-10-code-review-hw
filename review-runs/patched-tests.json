@@ -1,0 +1,32 @@
+[
+  {
+    "pr": 1,
+    "patched_suite_exit": 0,
+    "output": "✔ a member sees only their own loans (3.8936ms)\n✔ paged list reports the total and the page it returned (0.3503ms)\n✔ staff see every loan (0.2164ms)\n✔ borrowing sets the due date LOAN_DAYS after the day it was taken (1.5317ms)\n✔ a book that is out cannot be borrowed again (0.6837ms)\n✔ date helpers work across month ends (0.2477ms)\n✔ late fee: 5 грн per day late, nothing when on time (0.2898ms)\n✔ overdue report lists loans still out past due, most overdue first (0.484ms)\n✔ the overdue report is staff-only (0.3414ms)\n✔ the member directory is staff-only and has no contact details (4.2491ms)\n✔ a member reads their own card (1.4566ms)\n✔ a member cannot read someone else's card (0.2617ms)\n✔ reading a card is recorded in the access log (0.2898ms)\n✔ staff read any card (0.2541ms)\nℹ tests 14\nℹ suites 0\nℹ pass 14\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 199.9044"
+  },
+  {
+    "pr": 2,
+    "patched_suite_exit": 0,
+    "output": "✔ a member sees only their own loans (4.0163ms)\n✔ staff see every loan (0.3152ms)\n✔ borrowing sets the due date LOAN_DAYS after the day it was taken (1.624ms)\n✔ a book that is out cannot be borrowed again (0.8114ms)\n✔ date helpers work across month ends (0.2827ms)\n✔ late fee: 5 грн per day late, nothing when on time (0.3345ms)\n✔ overdue report lists loans still out past due, most overdue first (0.6424ms)\n✔ the overdue report is staff-only (0.3301ms)\n✔ the member directory is staff-only and has no contact details (3.9398ms)\n✔ a member reads their own card (1.4207ms)\n✔ a member cannot read someone else's card (0.2534ms)\n✔ reading a card is recorded in the access log (0.2939ms)\n✔ staff read any card (0.2425ms)\nℹ tests 13\nℹ suites 0\nℹ pass 13\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 174.2095"
+  },
+  {
+    "pr": 3,
+    "patched_suite_exit": 0,
+    "output": "✔ a member sees only their own loans (3.5299ms)\n✔ staff see every loan (0.2721ms)\n✔ borrowing sets the due date LOAN_DAYS after the day it was taken (1.582ms)\n✔ a book that is out cannot be borrowed again (0.7057ms)\n✔ date helpers work across month ends (0.2693ms)\n✔ late fee: 5 грн per day late, nothing when on time (0.2734ms)\n✔ overdue report lists loans still out past due, most overdue first (0.51ms)\n✔ the overdue report is staff-only (0.2672ms)\n✔ the member directory is staff-only and has no contact details (4.2295ms)\n✔ a member reads their own card (1.5496ms)\n✔ a member cannot read someone else's card (0.2834ms)\n✔ reading a card is recorded in the access log (0.3246ms)\n✔ staff read any card (0.2738ms)\n✔ CSV export has a header and one row per member (0.3308ms)\n✔ CSV export refuses an anonymous caller (0.2747ms)\nℹ tests 15\nℹ suites 0\nℹ pass 15\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 203.1494"
+  },
+  {
+    "pr": 4,
+    "patched_suite_exit": 0,
+    "output": "✔ addDays crosses month and year ends (2.4206ms)\n✔ daysBetween is negative when the second date is earlier (0.2219ms)\n✔ toUtcMs ignores the local time zone (0.1982ms)\n✔ a member sees only their own loans (7.0387ms)\n✔ staff see every loan (0.5998ms)\n✔ borrowing sets the due date LOAN_DAYS after the day it was taken (3.1044ms)\n✔ a book that is out cannot be borrowed again (1.4461ms)\n✔ date helpers work across month ends (0.5757ms)\n✔ late fee: 5 грн per day late, nothing when on time (0.642ms)\n✔ overdue report lists loans still out past due, most overdue first (0.5765ms)\n✔ the overdue report is staff-only (0.305ms)\n✔ the member directory is staff-only and has no contact details (3.7994ms)\n✔ a member reads their own card (1.3853ms)\n✔ a member cannot read someone else's card (0.2521ms)\n✔ reading a card is recorded in the access log (0.2915ms)\n✔ staff read any card (0.2464ms)\nℹ tests 16\nℹ suites 0\nℹ pass 16\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 206.8612"
+  },
+  {
+    "pr": 5,
+    "patched_suite_exit": 0,
+    "output": "✔ a member sees only their own loans (3.4971ms)\n✔ staff see every loan (0.2806ms)\n✔ borrowing sets the due date LOAN_DAYS after the day it was taken (1.4888ms)\n✔ a book that is out cannot be borrowed again (0.7191ms)\n✔ date helpers work across month ends (0.2554ms)\n✔ late fee: 5 грн per day late, nothing when on time (0.3681ms)\n✔ overdue report lists loans still out past due, most overdue first (0.4904ms)\n✔ the overdue report is staff-only (0.2984ms)\n✔ the member directory is staff-only and has no contact details (5.7631ms)\n✔ a member reads their own card (1.3995ms)\n✔ a member cannot read someone else's card (0.2539ms)\n✔ reading a card is recorded in the access log (0.2939ms)\n✔ staff read any card (0.2426ms)\nℹ tests 13\nℹ suites 0\nℹ pass 13\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 184.9957"
+  },
+  {
+    "pr": 6,
+    "patched_suite_exit": 0,
+    "output": "✔ an admin imports members from an uploaded CSV (8.5884ms)\n✔ only an admin may import (1.791ms)\n✔ a member sees only their own loans (3.8776ms)\n✔ staff see every loan (0.3048ms)\n✔ borrowing sets the due date LOAN_DAYS after the day it was taken (1.5959ms)\n✔ a book that is out cannot be borrowed again (0.782ms)\n✔ date helpers work across month ends (0.2956ms)\n✔ late fee: 5 грн per day late, nothing when on time (0.318ms)\n✔ overdue report lists loans still out past due, most overdue first (0.5486ms)\n✔ the overdue report is staff-only (0.309ms)\n✔ the member directory is staff-only and has no contact details (4.3406ms)\n✔ a member reads their own card (1.7038ms)\n✔ a member cannot read someone else's card (0.2913ms)\n✔ reading a card is recorded in the access log (0.3354ms)\n✔ staff read any card (0.288ms)\nℹ tests 15\nℹ suites 0\nℹ pass 15\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 177.2265"
+  }
+]
