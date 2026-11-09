@@ -9,6 +9,11 @@ cloned the answer repository into a sibling directory. No answer-key text or
 hidden tests were copied into this repository. Only benchmark identifiers and
 derived scores are recorded here, as required by the assignment.
 
+For an independent comparison, use the external
+[answer repository](https://github.com/koldovsky/2026-udc-10-code-review-hw-answers)
+linked in `docs/walkthrough.md`. The repository guardrails prohibit adding that
+key or its hidden tests here; benchmark IDs are references required by Task B.
+
 A TP identifies a benchmark defect's substance at the correct location; severity
 differences do not invalidate a match. FN means no such finding. FP means an
 incorrect blocking claim, not simply a finding absent from the benchmark. Nits
@@ -54,11 +59,11 @@ validation fix does not identify missing-field acceptance, so it earns no 6-D3 T
 These independently actionable findings are retained as additional valid findings,
 excluded from benchmark TP/FN and not mislabeled as FP:
 
-| Review finding | Adjudication |
-|---|---|
-| PR-1 finding 4, missing denial test | The new access-controlled function has only a staff success test; team convention 9 requires its denial test. |
-| PR-3 finding 4, unbounded export | The implementation materializes every member into arrays and one string; convention 7 has no bulk-export exemption. This is a convention violation, not a claimed measured production outage. |
-| PR-6 finding 3, quoted CSV corruption | Splitting `"Doe, Jane",jane@example.invalid,+380000000010` at every comma misplaces all contact columns; this differs from missing-field validation. |
+| Review finding | Verbatim reviewer evidence | Adjudication |
+|---|---|---|
+| [PR-1 finding 4](../review-runs/pr-1.md), missing denial test | “New access-controlled entry point has no denial test.” | The new access-controlled function has only a staff success test; team convention 9 requires its denial test. |
+| [PR-3 finding 4](../review-runs/pr-3.md), unbounded export | “As `db.members` grows, every call serializes the entire collection into both an intermediate array and one response string, with no page-size limit.” | The implementation materializes every member into arrays and one string; convention 7 has no bulk-export exemption. This is a convention violation, not a claimed measured production outage. |
+| [PR-6 finding 3](../review-runs/pr-6.md), quoted CSV corruption | “silently discarding the actual phone because the parser splits every comma.” | Splitting `"Doe, Jane",jane@example.invalid,+380000000010` at every comma misplaces all contact columns; this differs from missing-field validation. |
 
 This treatment is intentionally explicit: if a maintainer exempts full CSV exports
 from convention 7, PR-3 finding 4 becomes an FP. Under that alternative,
