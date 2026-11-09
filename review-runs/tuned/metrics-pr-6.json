@@ -1,0 +1,14 @@
+{
+  "pr": 6,
+  "configuration": "review/prompt.md version 2",
+  "measurement_started_at_utc": "2026-11-06 08:39:27 UTC",
+  "measurement_ended_at_utc": "2026-11-06 08:40:08 UTC",
+  "elapsed_seconds": 41,
+  "elapsed_scope": "Observed clock interval from immediately after initial input read through review artifact creation; initial read and metrics-file write excluded.",
+  "model": null,
+  "input_tokens": null,
+  "output_tokens": null,
+  "total_tokens": null,
+  "unavailable_fields_reason": "Model identity and actual token usage were not exposed by the runtime.",
+  "tests_run": false
+}

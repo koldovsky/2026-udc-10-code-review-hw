@@ -1,0 +1,14 @@
+{
+  "pr": 2,
+  "configuration_version": 2,
+  "observed_start_utc": "2026-11-06 08:39:19 UTC",
+  "observed_end_utc": "2026-11-06 08:39:36 UTC",
+  "observed_elapsed_seconds": 17,
+  "elapsed_scope": "Observed review interval from first clock reading after input read through completed static analysis; excludes final artifact writing.",
+  "model": null,
+  "model_unavailable_reason": "Exact model identifier is not exposed to this reviewer session.",
+  "input_tokens": null,
+  "output_tokens": null,
+  "token_fields_unavailable_reason": "Authoritative token usage is not exposed to this reviewer session.",
+  "tests_run": false
+}

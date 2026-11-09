@@ -1,0 +1,13 @@
+{
+  "pr": 5,
+  "elapsed_seconds": 14,
+  "timing_started_at_utc": "2026-11-06 08:34:28 UTC",
+  "timing_finished_at_utc": "2026-11-06 08:34:42 UTC",
+  "timing_scope": "Measured static analysis interval; excludes initial configuration and PR reads, and artifact writing.",
+  "model": null,
+  "model_availability": "Exact executing model identifier not exposed to this agent.",
+  "token_usage": null,
+  "token_usage_availability": "Per-session token usage not exposed; not estimated.",
+  "tests_run": false,
+  "diff_applied": false
+}
