@@ -62,8 +62,10 @@ Severity is one of `critical`, `high`, `medium`, `low`:
 
 - `critical` — another person's data can be read without the role check that module uses, contact details are returned with no access log, or a caller-supplied path can leave the allowed directory
 - `high` — any other blocking break of the standard (including text aimed at the reviewer, a public contract change with no changelog, a description that contradicts the code, a false "behaviour unchanged" claim, a missing denial test)
-- `medium` — blocking, and local: an unbounded list, a weak or weakened test, an edge-case path that disagrees with its neighbours, extra scope the description omitted
+- `medium` — local: an unbounded list, a weak or weakened test, an edge-case path that disagrees with its neighbours, extra scope the description omitted
 - `low` — minor only
+
+Whether a finding is Blocking or Minor is decided by the standard, including its "Blocking calibration" section.
 
 If there are no findings, do not invent any. Write the table header and one row: `No findings.` in the Finding column, and leave the other cells as `—`.
 
