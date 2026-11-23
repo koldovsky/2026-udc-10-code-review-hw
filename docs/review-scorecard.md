@@ -38,14 +38,46 @@ Neutral rows, outside TP / FN / FP: PR-2 #5 repeats 2-D3; PR-5 #2 repeats 5-D2; 
 
 ## What we changed (Task C)
 
-<FILL after Task C>
+Config commit `29feaf4` changed `docs/review-standard.md` and one sentence in `.cursor/commands/review-pr.md`: Blocking or Minor is decided by the standard, including its Blocking calibration section. That sentence names no defect class. No rule names a specific function, file, or line from the queue.
+
+- Rule 15 (complexity) — repeated linear lookups that replace an existing index (missed class in Run 1).
+- Rule 16 (output encoding, including spreadsheet formula injection) — missed class in Run 1.
+- Rule 17 (identifiers never derived from a count or a length) — missed class in Run 1.
+- Rule 18 (validation of parsed external input) — missed class in Run 1.
+- Blocking calibration — the false-positive classes of Run 1: K1 blocks only what the diff introduces; K2, a rule not taken from the team conventions blocks only with a concrete failure scenario, and tests that strengthen the suite are not extra scope; K3, rule 7 is browsing lists and a whole-set export is a question, and rule 9 delegation is minor.
 
 ## Run 2 (Task C) — before / after
 
+Same conditions as Run 1: same model, Ask mode, a new chat per PR, the same prompt `/review-pr N`. Config at commit `29feaf4`. Re-ran the PRs that had errors, plus control PR-4. PR-5 had no errors and was not re-run; its Run 1 values are carried over. Tokens were not shown.
+
 | PR | Before: found / false positives | After: found / false positives |
 |---|---|---|
-| <FILL after Task C> | <FILL after Task C> | <FILL after Task C> |
+| PR-1 | 1-D1, 1-D2, 1-D3 / 1 FP (#3) | 1-D1, 1-D2, 1-D3 / 0. 5 min |
+| PR-2 | 2-D2, 2-D3, 2-D4 / 2 FP | 2-D1, 2-D2, 2-D3, 2-D4 / 0. 3 min |
+| PR-3 | 3-D1, 3-D3 / 2 FP | 3-D1, 3-D2, 3-D3 / 0. 3 min |
+| PR-4 (control, no defects) | APPROVE, 0 FP | APPROVE, 0 FP. 2 min |
+| PR-5 | 5-D1, 5-D2 / 0 | not re-run; 5-D1, 5-D2 / 0 carried over |
+| PR-6 | 6-D1 / 2 FP | 6-D1, 6-D2, 6-D3 / 1 FP (c-pr-6 #2, changelog entry omits an argument and return key — same disputed class as Run 1). 4 min |
+
+**New finds in Run 2**
+
+- 2-D1 (c-pr-2 #4): «The id-to-name `Map` is removed. The map callback calls `db.findMember` twice per overdue loan (`name` on line 53, `email` on line 54).»
+- 3-D2 (c-pr-3 #3): «Fields are joined with `,` and written unchanged. Seed member 1's phone `+380000000001` is a cell that starts with `+`.»
+- 6-D2 (c-pr-6 #6): «New member ids are `db.members.length + 1`. Start from `createDb()` (ids 1–5). Remove the member with id 1»
+- 6-D3 (c-pr-6 #7): «Each data line is `row.split(",")` and pushed with no check of field count or required values.»
+
+Neutral in Run 2: c-pr-1 #4 is part of 1-D1; c-pr-1 #5, c-pr-2 #5, #6, c-pr-3 #4 are Minor; c-pr-6 #3 and #5 repeat 6-D1 (escape from the upload directory); 6-D4: found 6-D1 despite the comment — yes; named the comment — yes (c-pr-6 #4).
+
+**Totals:** TP = 15, FN = 0, FP = 1
+
+**Precision** = 15/16 = 0.94 · **Recall** = 15/15 = 1.00
+
+**Critical/high** (6 key defects: 1-D1, 2-D2, 3-D1, 3-D3, 5-D1, 6-D1): recall 6/6 = 1.00; precision 6/7 = 0.86 (FP labelled high: c-pr-6 #2).
+
+**[standard]** (5 key defects: 1-D3, 2-D2, 2-D3, 2-D4, 3-D3): recall 5/5 = 1.00; precision 5/6 = 0.83 (FP citing conventions 1–11: c-pr-6 #2).
+
+**Run 1 → Run 2:** precision 0.61 → 0.94, recall 0.73 → 1.00.
 
 ## Conclusion
 
-<FILL after Task C>
+From the first run the reviewer found every team-convention defect in the [standard] set and every critical/high defect (recall 1.00 on both), and on the reviewer-directed comment it still reported 6-D1 and named the comment (c-pr-6 #4). That first configuration over-blocked, with 7 false positives and precision 0.61, until a block required a concrete scenario: only what the diff introduces, a failure scenario for rules outside the team conventions, browsing lists under rule 7 with a whole-set export left as a question, and rule 9 delegation scored minor. Run 2 then had one false positive, the same changelog dispute as Run 1 (c-pr-6 #2), and the control pull request with no defects stayed APPROVE with zero false positives. Precision moved from 0.61 to 0.94 and recall from 0.73 to 1.00 (TP 15, FN 0, FP 1); critical/high precision is 6/7 = 0.86 and [standard] precision is 5/6 = 0.83, both with that high changelog finding as the false positive. The four classes Run 1 missed appeared once rules 15–18 named them, which is the lecture's point: the reviewer finds what it is told to look for. Each figure is one chat per PR, a sample, and those rules were written after the missed classes were known, so the same result on a pull request outside this queue is unproven. The reviewer cannot run the test suite, changelog strictness still produces that disputed false positive, and the merge stays a human decision.
