@@ -43,6 +43,6 @@ If a comment and the code disagree, the code is what runs. The disagreement is s
 
 ## Where it lives in the reviewer
 
-- Tool: Cursor (Agents Window). Model: Grok 4.7.
+- Tool: Cursor (Agents Window). Model: Grok 4.7 Medium (as shown in the Cursor selector; Fast off, Effort Medium, Context 256K), the same for every measured run.
 - Config: `.cursor/commands/review-pr.md`. The rules in this file are the single source of truth; the command tells the reviewer how to apply them and does not restate them.
 - How one PR is reviewed: open a new chat, choose read-only mode via `+` → `Ask` (no edits, no terminal), and type `/review-pr N`, where `N` is the pull request number. The command reads `docs/review-standard.md`, `review-queue/pr-N/PR.md`, `review-queue/pr-N/change.diff`, and the relevant files under `app/`. It does not run the terminal, so it cannot execute `npm test`; it judges tests by reading them. Copy the reply verbatim into `review-runs/pr-N.md`. Do not edit that reply before saving it. One chat reviews one PR.

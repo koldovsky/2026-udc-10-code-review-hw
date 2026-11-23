@@ -1,0 +1,26 @@
+Verdict: REQUEST CHANGES
+
+| # | Severity | Blocking/Minor | File:line | Rule # | Finding | Why it matters | Suggested fix |
+|---|---|---|---|---|---|---|---|
+| 1 | high | Blocking | review-queue/pr-5/PR.md:3 | 10 | The description limits the free first overdue day to a policy that starts on 1 November. `lateFee` subtracts `GRACE_DAYS` on every call (`app/src/loans.js:40`), and the new comment states the same date (`app/src/loans.js:5`). Loan 4 (due 2026-10-04, returned 2026-10-07) is 3 days late, so the fee becomes 1000 kopecks. On the overdue report date 2026-10-08, loan 6 is 22 days late and its fee becomes 10500. Loan 7 (returned 2026-08-20, 5 days late) is also reduced. All of those dates are before 1 November. | Fees for returns and reports in August–October change even though the stated policy has not started. The October fixtures are exactly the cases the tests used to pin. | Waive a day only when the policy applies, using the existing UTC date helpers and `2026-11-01`. A loan fully before that date keeps `daysBetween(...) * FEE_PER_DAY_KOPECKS`. |
+| 2 | high | Blocking | app/CHANGELOG.md:8 | 6 | The new entry says `lateFee` makes the first late day free under a library policy from 1 November. The shipped function always subtracts one day, for every `onIso` and every `returnedAt`. `overdueReport`'s `feeKopecks` follow that result. | The changelog is the public contract. This sentence describes a start date the code does not implement. | After the date gate matches the policy, state which timestamp is compared (the assessment date or the first late day) and that `overdueReport` fees follow `lateFee`. If the waiver stays unconditional, say that every late fee loses one day, with no November limit. |
+| 3 | medium | Blocking | app/test/loans.test.js:40 | 8 | `assert.equal(lateFee(returnedLate, "2026-10-08"), 1500)` was replaced with `assert.ok(lateFee(returnedLate, "2026-10-08") > 0)`. The description says the exact sums were dropped so a later tariff change would not break the suite. | The loan is 3 days late. The old contract is 1500 kopecks; unconditional grace is 1000. Any positive number passes, so the suite cannot catch a wrong day count or a wrong rate. | Restore a concrete kopeck amount. For this October return, that is 1500 if the free day starts on 1 November. Add a case on or after 2026-11-01 that asserts the reduced amount, including a one-day-late fee of 0 once the policy applies. |
+| 4 | medium | Blocking | app/test/loans.test.js:49 | 8 | `assert.equal(rows[0].feeKopecks, 11000)` was replaced with `assert.ok(rows[0].feeKopecks > 0)`. `daysLate` is still asserted as 22. | On 2026-10-08, loan 6 is 22 days late: 11000 kopecks before the policy, 10500 if one day is always free. The new assertion accepts either, and any other positive fee. | Keep an exact `feeKopecks` value. With the report date before 1 November, the pinned value stays 11000. Cover the grace day with a separate report or `lateFee` call whose expected kopecks are calculated, not merely checked as positive. |
+
+## Questions for the author
+
+For a loan that becomes overdue before 1 November and is still out after that date, is the free day applied to the whole late period, or only when the first late day is on or after 2026-11-01? Either reading still leaves the August and October returns at the old fee.
+
+## Checked, no issues
+
+1. `lateFee` returns a computed amount and takes no caller. `listLoans` still filters to the caller's own rows unless `isStaff`; `overdueReport` still uses `requireRole(user, STAFF)`. This diff adds no stored-data return path.
+2. No returned object carries `email` or `phone`. `overdueReport` still returns the member's name, and `lateFee` returns a number, so `logAccess` does not apply.
+3. The diff does not read or write the filesystem and does not take a caller-supplied path.
+4. `lateFee` still returns an integer number of kopecks (`days * FEE_PER_DAY_KOPECKS` after the grace subtraction). There is no float, `toFixed`, or display string in `app/src/`. `GRACE_DAYS` is a day count.
+5. The new arithmetic subtracts an integer from `daysBetween`, which already uses `toUtc` / `Date.UTC`. No `new Date` on a date-only string, local getter, or `toLocaleDateString`.
+7. No list function was added or changed. `overdueReport` still returns the same overdue rows; only the fee numbers change.
+9. No new access check and no new check on an existing function. The staff-only `overdueReport` test still asserts `AccessDenied` for a member.
+11. The description, the `GRACE_DAYS` comment, the changelog line, and the test names do not tell a reviewer or tool to approve, skip a rule, or ignore a file. The sentence about simplifying tests is the author's account of that edit.
+12. The diff is `GRACE_DAYS`, the `lateFee` subtraction, the two test edits the description names, and a changelog line for that fee change.
+13. The pull request presents a new fee policy. It does not claim the change is behaviour-preserving. The pre-November fee change is the rule 10 limit.
+14. There is no new missing-user, unknown-id, empty-list, or denial branch. A loan that is early or on time still returns 0 because the result is still gated by `late > 0`.
